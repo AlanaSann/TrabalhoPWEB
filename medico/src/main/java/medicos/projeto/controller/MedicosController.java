@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +30,7 @@ import medicos.projeto.model.Medicos;
 import medicos.projeto.repository.MedicoRepository;
 import medicos.projeto.services.MedicoService;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/medicos")
 public class MedicosController {
@@ -45,36 +47,43 @@ public class MedicosController {
         return ResponseEntity.created(null).body(medicoDto);
 
     }
-    
+
     @GetMapping("/listar/{page}")
-    public ResponseEntity<Page<MedicoDto>> listar(@PathVariable int page){
+    public ResponseEntity<Page<MedicoDto>> listar(@PathVariable int page) {
         Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.ASC, "nome"));
-        return ResponseEntity.ok().body(medicoService.listarMedicos(pageable).map(m-> modelMapper.map(m, MedicoDto.class)));
+        return ResponseEntity.ok()
+                .body(medicoService.listarMedicos(pageable).map(m -> modelMapper.map(m, MedicoDto.class)));
     }
+
     @GetMapping("/listarMedicos")
-    public ResponseEntity<List<MedicoDto>> listarTodos(){
-        return ResponseEntity.ok().body(medicoService.listarMedicos().stream().map(m-> modelMapper.map(m, MedicoDto.class)).collect(Collectors.toList()));
+    public ResponseEntity<List<MedicoDto>> listarTodos() {
+        return ResponseEntity.ok().body(medicoService.listarMedicos().stream()
+                .map(m -> modelMapper.map(m, MedicoDto.class)).collect(Collectors.toList()));
     }
+
     @GetMapping("/{id}")
-    public ResponseEntity<MedicoDto> getMedico(@PathVariable Long id){
+    public ResponseEntity<MedicoDto> getMedico(@PathVariable Long id) {
         return ResponseEntity.ok().body(modelMapper.map(medicoService.encontrarMedico(id), MedicoDto.class));
     }
 
     @GetMapping("buscar/{crm}")
-    public ResponseEntity<MedicoDto> buscarMedicoCpf(@PathVariable String crm){
+    public ResponseEntity<MedicoDto> buscarMedicoCpf(@PathVariable String crm) {
         return ResponseEntity.ok().body(modelMapper.map(medicoService.encontrarMedico(crm), MedicoDto.class));
     }
 
-    @DeleteMapping("/deletar/{id}")
-    public Object deletar(@PathVariable Long id){
-         medicoService.deletarMedico(id);
+    @CrossOrigin
+    @DeleteMapping("/deletar/{crm}")
+    public Object deletar(@PathVariable String crm) {
+        Medicos medico = medicoService.encontrarMedico(crm);
+        medicoService.deletarMedico(medico.getId());
         return ResponseEntity.noContent().build();
     }
-    
-    @PutMapping("/atualizar/{id}")
-    public ResponseEntity<MedicoDto> atualizar(@PathVariable Long id,@Valid @RequestBody MedicoForm medico){
-        Medicos medicoConvertido =  modelMapper.map(medico, Medicos.class);
-        medicoService.atualizarMedico(id, medicoConvertido);
+
+    @PutMapping("/atualizar/{crm}")
+    public ResponseEntity<MedicoDto> atualizar(@PathVariable String crm, @Valid @RequestBody MedicoForm medico) {
+        Medicos medicoEncontrado = medicoService.encontrarMedico(crm);
+        Medicos medicoConvertido = modelMapper.map(medico, Medicos.class);
+        medicoService.atualizarMedico(medicoEncontrado.getId(), medicoConvertido);
         MedicoDto medicoDto = modelMapper.map(medicoConvertido, MedicoDto.class);
         return ResponseEntity.created(null).body(medicoDto);
     }

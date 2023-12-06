@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 import org.modelmapper.ModelMapper;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
@@ -47,13 +49,14 @@ public class ConsultaService {
         rabbitTemplate.convertAndSend("AgendamentosQueue", mensagem);
     }
 
-    public String dataConsulta(LocalDateTime data){
+    public String dataConsulta(LocalDateTime data) {
         String dataConsulta = Integer.toString(data.getDayOfMonth());
         dataConsulta += "/" + Integer.toString(data.getMonthValue());
         dataConsulta += "/" + Integer.toString(data.getDayOfYear());
         dataConsulta += " às " + Integer.toString(data.getHour()) + ":" + Integer.toString(data.getMinute());
         return dataConsulta;
     }
+
     public void cancelarConsulta(CancelamentoFormulario cancela) {
         Consulta consulta = consultaExiste(cancela.getConsultaId());
         antecedencia24Horas(consulta);
@@ -76,9 +79,9 @@ public class ConsultaService {
         if (escolheMedico(consulta.getCrm())) {
             consulta.setCrm(escolherMedicoAleatorio(consulta.getDataHora()));
         } else {
-             medicoExiste(consulta.getCrm());
-             medicoTemDisponibilidadeNessaHora(consulta.getCrm(),
-             consulta.getDataHora());
+            medicoExiste(consulta.getCrm());
+            medicoTemDisponibilidadeNessaHora(consulta.getCrm(),
+                    consulta.getDataHora());
         }
         pacienteExiste(consulta.getCpf());
         unicaConsultaDoDia(consulta.getCpf(), consulta.getDataHora().withHour(0));
@@ -97,6 +100,10 @@ public class ConsultaService {
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.REQUEST_TIMEOUT, "Serviço de medico offline");
         }
+    }
+
+    public Page<Consulta> listarConsultas(Pageable page) {
+        return consultaRepository.findAll(page);
     }
 
     private String escolherMedicoAleatorio(LocalDateTime data) {

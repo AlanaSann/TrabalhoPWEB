@@ -1,4 +1,5 @@
 package projeto.demo.controller;
+
 import java.util.List;
 
 import javax.swing.SortOrder;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,50 +27,56 @@ import projeto.demo.form.PacienteForm;
 import projeto.demo.model.Pacientes;
 import projeto.demo.services.PacienteService;
 
+@CrossOrigin
 @RestController
 @RequestMapping("/pacientes")
 public class PacientesController {
-    
+
     @Autowired
     private PacienteService pacienteService;
     @Autowired
     private ModelMapper modelMapper;
 
     @PostMapping("/cadastrar")
-    public ResponseEntity<PacienteDto> cadastrar(@Valid @RequestBody PacienteForm paciente){
+    public ResponseEntity<PacienteDto> cadastrar(@Valid @RequestBody PacienteForm paciente) {
         Pacientes pacienteConvertido = modelMapper.map(paciente, Pacientes.class);
         pacienteService.cadastarPacientes(pacienteConvertido);
         PacienteDto pacienteDto = modelMapper.map(pacienteConvertido, PacienteDto.class);
         return ResponseEntity.created(null).body(pacienteDto);
     }
-    
+
     @GetMapping("/listar/{page}")
-    public ResponseEntity<Page<PacienteDto>> listar(@PathVariable int page){
-        Pageable pageable = PageRequest.of(page, 10,Sort.by(Sort.Direction.ASC,"nome"));
-        return ResponseEntity.ok().body(pacienteService.listarPacientes(pageable).map(p-> modelMapper.map(p,PacienteDto.class)));
+    public ResponseEntity<Page<PacienteDto>> listar(@PathVariable int page) {
+        Pageable pageable = PageRequest.of(page, 10, Sort.by(Sort.Direction.ASC, "nome"));
+        return ResponseEntity.ok()
+                .body(pacienteService.listarPacientes(pageable).map(p -> modelMapper.map(p, PacienteDto.class)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PacienteDto> getPaciente(@PathVariable Long id){
-        return ResponseEntity.ok().body(modelMapper.map(pacienteService.encontrarPaciente(id),PacienteDto.class));
+    public ResponseEntity<PacienteDto> getPaciente(@PathVariable Long id) {
+        return ResponseEntity.ok().body(modelMapper.map(pacienteService.encontrarPaciente(id), PacienteDto.class));
     }
 
     @GetMapping("/buscar/{cpf}")
-    public ResponseEntity<PacienteDto> buscarPorCpf(@PathVariable String cpf){
-        return ResponseEntity.ok().body(modelMapper.map(pacienteService.encontrarPaciente(cpf),PacienteDto.class));
+    public ResponseEntity<PacienteDto> buscarPorCpf(@PathVariable String cpf) {
+        return ResponseEntity.ok().body(modelMapper.map(pacienteService.encontrarPaciente(cpf), PacienteDto.class));
     }
 
-    @DeleteMapping("/deletar/{id}")
-    public Object deletarPacientes(@PathVariable Long id){
-        pacienteService.deletarPacientes(id);
+    @DeleteMapping("/deletar/{cpf}")
+    public Object deletarPacientes(@PathVariable String cpf) {
+        System.out.println(cpf);
+        Pacientes paciente = pacienteService.encontrarPaciente(cpf);
+        pacienteService.deletarPacientes(paciente.getId());
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/atualizar/{id}")
-    public ResponseEntity<PacienteDto> atualizarPacientes(@PathVariable Long id,@Valid @RequestBody PacienteForm paciente){
+    @PutMapping("/atualizar/{cpf}")
+    public ResponseEntity<PacienteDto> atualizarPacientes(@PathVariable String cpf,
+            @Valid @RequestBody PacienteForm paciente) {
+        Pacientes pacienteBuscado = pacienteService.encontrarPaciente(cpf);
         Pacientes pacienteConvertido = modelMapper.map(paciente, Pacientes.class);
-        pacienteService.attPacientes(id, pacienteConvertido);
-        PacienteDto pacienteDto = modelMapper.map(pacienteConvertido,PacienteDto.class);
+        pacienteService.attPacientes(pacienteBuscado.getId(), pacienteConvertido);
+        PacienteDto pacienteDto = modelMapper.map(pacienteConvertido, PacienteDto.class);
         return ResponseEntity.created(null).body(pacienteDto);
     }
 }
